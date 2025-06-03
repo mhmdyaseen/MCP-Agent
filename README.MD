@@ -33,6 +33,33 @@
 - **Multi-Server Navigation**  
   Connects and disconnects from multiple MCP servers on-demand, giving agent the ability to utilize various capabilities across different environments.
 
+## 📃 Example
+
+**Prompt** Install Fetch-MCP
+
+```plaintext
+Enter a task: install fetch-mcp                                                                                                                         
+Entering MCP Agent
+Thought: The user wants to install the 'fetch-mcp' server. According to the installation guidelines, the first step is to download the server. I will use the Download Tool for this purpose.
+Action Name: Download Tool
+Action Input: {"server_name": "fetch-mcp"}
+Observation: Downloaded fetch-mcp from https://github.com/zcaceres/fetch-mcp.git and saved to D:\Personal Projects\MCP Agent\mcp_servers\fetch-mcp.
+Thought: I have downloaded the 'fetch-mcp' server. The next step according to the installation guidelines is to read and understand the installation and configuration from the README.md file. I will use the Read Tool to do this.
+Action Name: Read Tool
+Action Input: {"server_name": "fetch-mcp"}
+Observation: # Fetch MCP Server ![fetch mcp logo](logo.jpg) This MCP server provides functionality to fetch web content in various formats, including HTML, JSON, plain text, and Markdown. <a href="https://glama.ai/mcp/servers/nu09wf23ao"> <img width="380" height="200" src="https://glama.ai/mcp/servers/nu09wf23ao/badge" alt="Fetch Server MCP server" /> </a> ## Components ### Tools - **fetch_html** - Fetch a website and return the content as HTML - Input: - `url` (string, required): URL of the website to [...]
+Thought: I have read the README.md and the next steps are to install dependencies and build the server using npm commands. I will use the Shell Tool to execute `npm install` in the server's directory.
+Action Name: Shell Tool
+Action Input: {"server_name": "fetch-mcp", "command": "npm install"}
+Observation: > fetch@1.0.0 prepare > npm run build > fetch@1.0.0 build > tsc && shx chmod +x dist/*.js added 439 packages, and audited 440 packages in 21s 61 packages are looking for funding run `npm fund` for details found 0 vulnerabilities
+Thought: I have installed the dependencies and the build step was also executed as part of the `prepare` script during `npm install`. The next step according to the installation guidelines is to install the server by updating the config.json. I will use the Install Tool for this.
+Action Name: Install Tool
+Action Input: {"server_name": "fetch-mcp", "command": "node", "args": ["./dist/index.js"], "env": {}}
+Observation: Installed fetch-mcp successfully.
+Thought: I have successfully downloaded, read the instructions, installed dependencies, built the server, and installed it using the Install Tool. The task of installing fetch-mcp is now complete. I will use the Done Tool to indicate the completion and provide the final answer.
+Final Answer: The fetch-mcp server has been successfully installed.
+```
+
 ---
 
 ## 🏁 Getting Started
