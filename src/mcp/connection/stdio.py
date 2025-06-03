@@ -47,9 +47,3 @@ class StdioConnection(BaseConnection):
                 print(f'Error while closing the stdio connection: {e}')
             finally:
                 self.stdio_context=None
-        
-        
-        
-
-
-
