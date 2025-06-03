@@ -1,0 +1,16 @@
+langgraph
+tenacity
+requests
+termcolor
+python-dotenv
+httpx
+nest_asyncio
+MainContentExtractor
+ratelimit
+pyaudio
+pyperclip
+keyboard
+pydantic
+mcp
+pyGithub
+GitPython
