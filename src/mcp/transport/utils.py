@@ -1,26 +1,28 @@
-from typing import Any,Dict
+import os
+import sys
 
-def is_stdio_transport(server_config: Dict[str,Any])->bool:
-    '''
-    Check if the server configuration is for a stdio transport
+DEFAULT_INHERITED_ENV_VARS = (
+    ["HOME", "LOGNAME", "PATH", "SHELL", "TERM", "USER"]
+    if sys.platform != "win32"
+    else [
+        "APPDATA",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "LOCALAPPDATA",
+        "PATH",
+        "PROCESSOR_ARCHITECTURE",
+        "SYSTEMDRIVE",
+        "SYSTEMROOT",
+        "TEMP",
+        "USERNAME",
+        "USERPROFILE",
+    ]
+)
 
-    Args:
-        server_config: The server configuration
-
-    Returns:
-        True if the server configuration is for a stdio transport, False otherwise
-    '''
-    return 'command' in server_config and 'args' in server_config
-
-
-def is_sse_transport(server_config: Dict[str,Any])->bool:
-    '''
-    Check if the server configuration is for a sse transport
-
-    Args:
-        server_config: The server configuration
-
-    Returns:
-        True if the server configuration is for a sse transport, False otherwise
-    '''
-    return 'url' in server_config
+def get_default_environment() -> dict[str, str]:
+    env = {
+        key: value
+        for key in DEFAULT_INHERITED_ENV_VARS
+        if (value := os.environ.get(key)) and not value.startswith("()")
+    }
+    return env

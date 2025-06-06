@@ -1,6 +1,6 @@
 from src.inference.gemini import ChatGemini
 from src.agent.mcp import MCPAgent
-from src.mcp.client import MCPClient
+from src.mcp.client import Client as MCPClient
 from dotenv import load_dotenv
 from pathlib import Path
 import os

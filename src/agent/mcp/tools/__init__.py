@@ -1,5 +1,5 @@
 from src.agent.mcp.tools.views import Done,Service,Explore,Connect,Disconnect,Resource,Execute,Download,Read,Install,Shell,Uninstall
-from src.mcp.client import MCPClient
+from src.mcp.client import Client as MCPClient
 from subprocess import run
 from src.tool import Tool
 from github import Github
@@ -131,15 +131,15 @@ async def explore_tool(server_name:str,client:MCPClient=None):
         return f'Server {server_name} not connected.'
     prompt=''
     session=client.get_session(server_name)
-    tools=session.list_tools()
+    tools=await session.tools_list()
     if tools:
         prompt+=f'Tools available in {server_name}:\n'
         for tool in tools:
             prompt+=f'- Tool Name: {tool.name}\n'
             prompt+=f'- Tool Description: {tool.description}\n'
-            prompt+=f'- Tool Parameters: {json.dumps(tool.inputSchema,indent=2)}\n'
+            prompt+=f'- Tool Parameters: {tool.inputSchema.model_dump_json(indent=4)}\n'
             prompt+='\n'
-    resources=session.list_resources()
+    resources=await session.resources_list()
     if resources:
         prompt+=f'Resources available in {server_name}:\n'
         for resource in resources:
@@ -163,12 +163,12 @@ async def execute_tool(server_name:str,tool_name:str,params:dict,client:MCPClien
     if server_name not in client.sessions:
         return f'Server {server_name} not connected.'
     session= client.get_session(server_name)
-    tools=session.list_tools()
+    tools=await session.tools_list()
     if tool_name not in [tool.name for tool in tools]:
         return f'Tool {tool_name} not found in server {server_name}.'
-    tool_result=await session.call_tool(tool_name,params)
+    tool_result=await session.tools_call(tool_name,params)
     content=tool_result.content[0]
-    return content.text
+    return content.get('text')
 
 @Tool('Resource Tool',params=Resource)
 async def resource_tool(server_name:str,resource_uri:str,client:MCPClient=None):
@@ -176,9 +176,9 @@ async def resource_tool(server_name:str,resource_uri:str,client:MCPClient=None):
     if server_name not in client.sessions:
         return f'Server {server_name} not connected.'
     session= client.get_session(server_name)
-    resources=session.list_resources()
+    resources=await session.resources_list()
     if resource_uri not in [resource.uri for resource in resources]:
         return f'Resource {resource_uri} not found in server {server_name}.'
-    resource_result=await session.read_resource(resource_uri)
+    resource_result=await session.resources_read(resource_uri)
     content=resource_result.contents[0]
     return content.text

@@ -11,6 +11,5 @@ pyaudio
 pyperclip
 keyboard
 pydantic
-mcp
 pyGithub
 GitPython

@@ -2,11 +2,11 @@ from src.agent.mcp.tools import done_tool,service_tool,explore_tool,connect_tool
 from src.agent.mcp.utils import extract_agent_data,read_markdown_file
 from src.message import AIMessage,HumanMessage,SystemMessage
 from langgraph.graph import StateGraph,END,START
+from src.mcp.client import Client as MCPClient
 from src.agent.mcp.tools import done_tool
 from src.agent.mcp.state import State
 from src.inference import BaseInference
 from src.tool.registry import Registry
-from src.mcp.client import MCPClient
 from src.memory import BaseMemory
 from src.agent import BaseAgent
 from datetime import datetime
