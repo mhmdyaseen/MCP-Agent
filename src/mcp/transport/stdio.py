@@ -1,8 +1,9 @@
-from src.mcp.types.json_rpc import JSONRPCRequest, JSONRPCResponse, JSONRPCNotification
+from src.mcp.types.json_rpc import JSONRPCRequest, JSONRPCResponse, JSONRPCError, Error, JSONRPCNotification
 from src.mcp.transport.utils import get_default_environment
 from src.mcp.types.stdio import StdioServerParams
 from src.mcp.transport.base import BaseTransport
 from asyncio.subprocess import Process
+from src.mcp.exception import MCPError
 from typing import Any
 import asyncio
 import json
@@ -17,7 +18,7 @@ class StdioTransport(BaseTransport):
         self.params=params
         self.process:Process = None
         self.listen_task:asyncio.Task = None
-        self.queue:dict[str,asyncio.Queue[JSONRPCResponse]]={}
+        self.queue:dict[str,asyncio.Queue[JSONRPCResponse|JSONRPCError]]={}
 
     async def connect(self)->None:
         command=self.params.command
@@ -27,6 +28,18 @@ class StdioTransport(BaseTransport):
         self.listen_task=asyncio.create_task(self.listen())
 
     async def send_request(self, request:JSONRPCRequest)->JSONRPCResponse:
+        '''
+        Send a JSON RPC request to the MCP server
+
+        Args:
+            request: JSON RPC request object
+
+        Returns:
+            JSON RPC response object
+        
+        Raises:
+            MCPError: If the request fails
+        '''
         id=request.id
         self.queue[id]=asyncio.Queue()
         try:
@@ -35,6 +48,9 @@ class StdioTransport(BaseTransport):
 
             queue=self.queue.get(id)
             response = await queue.get()
+            if isinstance(response,JSONRPCError):
+                error=response.error
+                raise MCPError(code=error.code,message=error.message)
         except asyncio.TimeoutError:
             raise Exception("Request timed out")
         except Exception as e:
@@ -44,6 +60,12 @@ class StdioTransport(BaseTransport):
         return response
     
     async def send_notification(self, notification:JSONRPCNotification)->None:
+        '''
+        Send a JSON RPC notification to the MCP server
+
+        Args:
+            notification: JSON RPC notification object
+        '''
         try:
             self.process.stdin.write((json.dumps(notification.model_dump()) + '\n').encode())
             await self.process.stdin.drain()
@@ -52,7 +74,6 @@ class StdioTransport(BaseTransport):
         except Exception as e:
             raise Exception(f"Error: {e}")
         
-
     async def listen(self):
         '''
         Listens for JSON RPC messages from Stdio Server
@@ -63,7 +84,12 @@ class StdioTransport(BaseTransport):
                 if not line:
                     break # If the process is closed/cancelled
                 try:
-                    message = JSONRPCResponse.model_validate(json.loads(line.decode().strip()))
+                    content:dict=json.loads(line.decode().strip())
+                    if 'result' in content:
+                        message = JSONRPCResponse.model_validate(content)
+                    elif 'error' in content:
+                        error=Error.model_validate(content.get('error'))
+                        message=JSONRPCError(id=content.get('id'),error=error,message=error.message)
                 except json.JSONDecodeError:
                     print(f"Invalid JSON received: {line}")
                 

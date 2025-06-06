@@ -181,4 +181,4 @@ async def resource_tool(server_name:str,resource_uri:str,client:MCPClient=None):
         return f'Resource {resource_uri} not found in server {server_name}.'
     resource_result=await session.resources_read(resource_uri)
     content=resource_result.contents[0]
-    return content.text
+    return content.get('text')
