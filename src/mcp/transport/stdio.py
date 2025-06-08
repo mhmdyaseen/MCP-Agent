@@ -11,7 +11,7 @@ import sys
 
 class StdioTransport(BaseTransport):
     """
-    Stdio transport for MCP
+    Stdio Transport for MCP
 
     Communicates with the MCP server via stdin and stdout of subprocess
     """
@@ -22,16 +22,19 @@ class StdioTransport(BaseTransport):
         self.queue:dict[str,asyncio.Queue[JSONRPCResponse|JSONRPCError]]={}
 
     async def connect(self)->None:
+        '''
+        Create a Stdio Client
+        '''
         command=self.params.command
         args=self.params.args
         env=get_default_environment() if self.params.env is None else {**get_default_environment(),**self.params.env}
         if sys.platform=='win32' and command=='npx':
             command='cmd'
-            args=['/c','npx',*args] 
+            args=['/c','npx',*args]           
         self.process=await asyncio.create_subprocess_exec(command,*args,env=env,stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE,start_new_session=True)
         self.listen_task=asyncio.create_task(self.listen())
 
-    async def send_request(self, request:JSONRPCRequest)->JSONRPCResponse:
+    async def send_request(self, request:JSONRPCRequest)->JSONRPCResponse|JSONRPCError:
         '''
         Send a JSON RPC request to the MCP server
 
@@ -55,6 +58,7 @@ class StdioTransport(BaseTransport):
             if isinstance(response,JSONRPCError):
                 error=response.error
                 raise MCPError(code=error.code,message=error.message)
+            
         except asyncio.TimeoutError:
             raise Exception("Request timed out")
         except Exception as e:
@@ -108,7 +112,7 @@ class StdioTransport(BaseTransport):
 
     async def disconnect(self):
         """
-        Stop the MCP server process.
+        Disconnect from the MCP server process.
         """
         if self.listen_task:
             self.listen_task.cancel()
