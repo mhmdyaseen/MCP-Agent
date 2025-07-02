@@ -42,7 +42,20 @@ class MCPAgent(BaseAgent):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
 
     async def reason(self,state:State):
-        messages=state.get('messages')
+        mcp_servers=self.client.get_status()
+        parameters={
+            'name':self.name,
+            'description':self.description,
+            'instructions':self.instructions,
+            'mcp_servers': '\n'.join([f'{name} ({status})' for name,status in mcp_servers.items()]),
+            'tools_prompt':self.registry.tools_prompt(),
+            'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'operating_system': platform(),
+            'max_iteration':self.max_iteration
+        }
+        system_prompt=self.system_prompt.format(**parameters)
+        human_prompt=f'Task: {state.get("input")}'
+        messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]+state.get('messages')
         ai_message=await self.llm.async_invoke(messages=messages)
         agent_data=extract_agent_data(ai_message.content)
         thought=agent_data.get('Thought')
@@ -117,24 +130,11 @@ class MCPAgent(BaseAgent):
     async def invoke(self,input:str=''):
         if self.verbose:
             print(f'Entering {self.name}')
-        parameters={
-            'name':self.name,
-            'description':self.description,
-            'instructions':self.instructions,
-            'mcp_servers':'\n'.join(self.client.get_server_names()),
-            'tools_prompt':self.registry.tools_prompt(),
-            'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'operating_system': platform(),
-            'max_iteration':self.max_iteration
-        }
-        system_prompt=self.system_prompt.format(**parameters)
-        human_prompt=f'Task: {input}'
-        messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]
         state={
             'input':input,
             'agent_data':{},
             'output':'',
-            'messages':messages
+            'messages':[]
         }
         response=await self.graph.ainvoke(state)
         if self.memory:
@@ -144,23 +144,11 @@ class MCPAgent(BaseAgent):
     def stream(self, input: str):
         if self.verbose:
             print(f'Entering {self.name}')
-        parameters={
-            'name':self.name,
-            'description':self.description,
-            'instructions':self.instructions,
-            'tools_prompt':self.registry.tools_prompt(),
-            'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'operating_system': platform(),
-            'max_iteration':self.max_iteration
-        }
-        system_prompt=self.system_prompt.format(**parameters)
-        human_prompt=f'Task: {input}'
-        messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]
         state={
             'input':input,
             'agent_data':{},
             'output':'',
-            'messages':messages
+            'messages':[]
         }
         events=self.graph.stream(state)
         for event in events:

@@ -55,6 +55,14 @@ class Client:
         self.sessions[name]=session
         return session
     
+    def get_server_status(self,name:str)->str:
+        if name in self.sessions:
+            return "Connected"
+        return "Disconnected"
+    
+    def get_status(self):
+        return {server_name:self.get_server_status(name=server_name) for server_name in self.get_server_names()}
+    
     def get_session(self,name:str)->Session|None:
         if name not in self.sessions:
             raise ValueError(f"Session {name} not found")
