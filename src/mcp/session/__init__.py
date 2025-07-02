@@ -1,33 +1,32 @@
-from src.mcp.types.json_rpc import JSONRPCRequest, JSONRPCResponse, JSONRPCNotification, Method
+from src.mcp.types.resources import Resource, ResourceResult, ResourceTemplate
+from src.mcp.types.json_rpc import JSONRPCRequest, JSONRPCNotification, Method
+from src.mcp.types.capabilities import ClientCapabilities, RootCapability
 from src.mcp.types.initialize import InitializeResult,InitializeParams
-from src.mcp.types.capabilities import ClientCapabilities
-from src.mcp.transport.base import BaseTransport
 from src.mcp.types.tools import Tool, ToolRequest, ToolResult
 from src.mcp.types.prompts import Prompt, PromptResult
-from src.mcp.types.resources import Resource, ResourceResult, ResourceTemplate
+from src.mcp.transport.base import BaseTransport
 from src.mcp.types.info import ClientInfo
 from typing import Optional,Any
 
 from uuid import uuid4
 
 class Session:
-    def __init__(self,transport:BaseTransport)->None:
+    def __init__(self,transport:BaseTransport,client_info:ClientInfo)->None:
         self.id=str(uuid4())
         self.transport=transport
+        self.client_info=client_info
 
     async def connect(self)->None:
         await self.transport.connect()
 
     async def initialize(self)->InitializeResult:
-        client_version="2024-11-05"
-        params=InitializeParams(clientInfo=ClientInfo(),capabilities=ClientCapabilities(),protocolVersion=client_version)
-
-        request=JSONRPCRequest(id=self.id,method=Method.INITIALIZE,params=params.model_dump())
+        PROTOCOL_VERSION="2024-11-05"
+        roots=RootCapability(listChanged=True)
+        params=InitializeParams(clientInfo=self.client_info,capabilities=ClientCapabilities(roots=roots),protocolVersion=PROTOCOL_VERSION)
+        request=JSONRPCRequest(id=self.id,method=Method.INITIALIZE,params=params.model_dump(exclude_none=True))
         response=await self.transport.send_request(request=request)
-
         json_rpc_notification=JSONRPCNotification(method=Method.NOTIFICATION_INITIALIZED)
         await self.transport.send_notification(json_rpc_notification)
-
         return InitializeResult.model_validate(response.result)
     
     async def ping(self)->bool:
@@ -60,6 +59,14 @@ class Session:
         response=await self.transport.send_request(request=request)
         return [ResourceTemplate.model_validate(template) for template in response.result.get("resourceTemplates")]
     
+    async def resources_subscribe(self,uri:str)->None:
+        request=JSONRPCRequest(id=self.id,method=Method.RESOURCES_SUBSCRIBE,params={"uri":uri})
+        await self.transport.send_request(request=request)
+
+    async def resources_unsubscribe(self,uri:str)->None:
+        request=JSONRPCRequest(id=self.id,method=Method.RESOURCES_UNSUBSCRIBE,params={"uri":uri})
+        await self.transport.send_request(request=request)
+    
     async def tools_list(self,cursor:Optional[str]=None)->list[Tool]:
         message=JSONRPCRequest(id=self.id,method=Method.TOOLS_LIST,params={"cursor":cursor} if cursor else {})
         response=await self.transport.send_request(request=message)
@@ -70,6 +77,10 @@ class Session:
         message=JSONRPCRequest(id=self.id,method=Method.TOOLS_CALL,params=tool_request.model_dump())
         response=await self.transport.send_request(request=message)
         return ToolResult.model_validate(response.result)
+    
+    async def roots_list_changed(self)->None:
+        notification=JSONRPCNotification(method=Method.NOTIFICATION_ROOTS_LIST_CHANGED)
+        await self.transport.send_notification(notification=notification)
 
-    async def disconnect(self)->None:
+    async def shutdown(self)->None:
         await self.transport.disconnect()

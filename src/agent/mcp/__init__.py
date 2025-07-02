@@ -1,12 +1,11 @@
-from src.agent.mcp.tools import done_tool,service_tool,explore_tool,connect_tool,disconnect_tool,execute_tool,download_tool,read_tool,install_tool,shell_tool,uninstall_tool
+from src.agent.mcp.tools import done_tool,execute_tool,discovery_tool,resource_tool,connect_tool,disconnect_tool
 from src.agent.mcp.utils import extract_agent_data,read_markdown_file
 from src.message import AIMessage,HumanMessage,SystemMessage
 from langgraph.graph import StateGraph,END,START
-from src.mcp.client import Client as MCPClient
-from src.agent.mcp.tools import done_tool
-from src.agent.mcp.state import State
 from src.inference import BaseInference
 from src.tool.registry import Registry
+from src.agent.mcp.state import State
+from src.mcp.client import Client
 from src.memory import BaseMemory
 from src.agent import BaseAgent
 from datetime import datetime
@@ -16,15 +15,13 @@ from textwrap import shorten
 import json
 
 tools=[
-    service_tool,connect_tool,
-    disconnect_tool,explore_tool,
-    execute_tool,uninstall_tool,
-    download_tool,read_tool,
-    install_tool,shell_tool
+    execute_tool,discovery_tool,
+    connect_tool,disconnect_tool,
+    resource_tool
 ]
 
 class MCPAgent(BaseAgent):
-    def __init__(self,uv_path:str=None,instructions:list[str]=[],client:MCPClient=None,memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
+    def __init__(self,config_path:str='',instructions:list[str]=[],memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
         self.name='MCP Agent'
         self.description='The MCP Agent is capable of connecting to MCP servers and executing tools and resources to perform tasks.'
         self.system_prompt=read_markdown_file('./src/agent/mcp/prompt/system.md')
@@ -33,7 +30,7 @@ class MCPAgent(BaseAgent):
         self.answer_prompt=read_markdown_file('./src/agent/mcp/prompt/answer.md')
         self.instructions=self.get_instructions(instructions)
         self.llm=llm
-        self.client=client
+        self.client=Client.from_config_file(config_path)
         self.registry=Registry(tools+[done_tool])
         self.max_iteration=max_iteration
         self.iteration=0
@@ -124,15 +121,13 @@ class MCPAgent(BaseAgent):
             'name':self.name,
             'description':self.description,
             'instructions':self.instructions,
+            'mcp_servers':'\n'.join(self.client.get_server_names()),
             'tools_prompt':self.registry.tools_prompt(),
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'operating_system': platform(),
             'max_iteration':self.max_iteration
         }
-        if self.memory and self.memory.retrieve(input):
-            system_prompt=self.memory.attach_memory(system_prompt)
-        else:
-            system_prompt=self.system_prompt.format(**parameters)
+        system_prompt=self.system_prompt.format(**parameters)
         human_prompt=f'Task: {input}'
         messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]
         state={
@@ -152,17 +147,13 @@ class MCPAgent(BaseAgent):
         parameters={
             'name':self.name,
             'description':self.description,
-            'uv_path': self.uv_path,
             'instructions':self.instructions,
             'tools_prompt':self.registry.tools_prompt(),
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'operating_system': platform(),
             'max_iteration':self.max_iteration
         }
-        if self.memory and self.memory.retrieve(input):
-            system_prompt=self.memory.attach_memory(system_prompt)
-        else:
-            system_prompt=self.system_prompt.format(**parameters)
+        system_prompt=self.system_prompt.format(**parameters)
         human_prompt=f'Task: {input}'
         messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]
         state={

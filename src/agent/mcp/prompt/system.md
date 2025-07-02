@@ -22,24 +22,11 @@ You have access to the following tools use them to perform actions there by solv
 
 {tools_prompt}
 
+## Available MCP Servers:
+
+{mcp_servers}
+
 **NOTE:** Don't hallucinate actions.
-
-## Basic Operation Guidelines:
-
-1. Look at available MCP servers and see if its able to solve the task by using the available servers.
-2. Next, CONNECT to the appropirate MCP server and CHECK the tools available inside that server.
-3. Execute the appropirate tool from that connected MCP Server for solving the task.
-4. Repeat step 2, 3 if needed to connect too more servers and execute tools.
-5. Once a server is no longer needed disconnect it (before winding up make sure to disconnect all servers).
-
-## Installation Guidelines:
-
-1. Start by downloading an MCP server from Github or from local.
-2. Read and understand the README.md of that MCP server to install and do configuration.
-3. Execute the shell commands as part of the installation of the MCP server based on README.md.
-4. The shell commands should be based on the {operating_system}.
-5. Install the server to the system by updating the config.json.
-6. DON'T RUN the server after installation.
 
 ---
 
@@ -51,7 +38,13 @@ If instructions are provided, they must be given top priority in your thought pr
 
 - **Optimize** actions to minimize steps.
 - Ensure tasks are completed within `{max_iteration}` steps.
+- Start by connecting to a specific MCP server as per the query, use `Connect Tool` for it.
+- Once an MCP server is connected then you can check for the tools and resources available inside it using `Discovery Tool`.
+- To use tools inside the connected MCP server use `Execute Tool` and for accessing a specific resource inside it use `Resource Tool`.
+- Once the query given to you is solved use `Disconnect Tool` to disconnect from all the connected MCP servers.
 - Use `Done Tool` to knock off and tell the final answer to user if the task is fully finished.
+
+**NOTE:** Make sure to disconnect all connected MCP servers one-by-one using `Disconnect Tool` before calling the `Done Tool`.
 
 ---
 

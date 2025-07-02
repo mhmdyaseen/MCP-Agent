@@ -1,7 +1,6 @@
 from typing import TypedDict,Annotated
 from src.message import BaseMessage
 from operator import add
-from pydantic import BaseModel
 
 class State(TypedDict):
     input:str

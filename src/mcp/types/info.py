@@ -1,8 +1,8 @@
-from pydantic import BaseModel,Field
+from pydantic import BaseModel
 
 class ClientInfo(BaseModel):
-    name: str='MCP Client'
-    version: str='0.1'
+    name: str
+    version: str
 
 class ServerInfo(BaseModel):
     name: str

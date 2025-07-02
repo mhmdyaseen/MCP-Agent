@@ -1,4 +1,4 @@
-from src.mcp.types.json_rpc import JSONRPCRequest, JSONRPCNotification, JSONRPCResponse, JSONRPCError, Error
+from src.mcp.types.json_rpc import JSONRPCRequest, JSONRPCNotification, JSONRPCResponse, JSONRPCError, Error, Method
 from src.mcp.transport.base import BaseTransport
 from httpx import AsyncClient, Limits
 from typing import Optional
@@ -9,6 +9,7 @@ class StreamableHTTPTransport(BaseTransport):
         self.url = url
         self.headers = headers or{}
         self.mcp_session_id = None
+        self.protocol_version=None
         self.client: AsyncClient = None
 
     async def connect(self):
@@ -33,20 +34,29 @@ class StreamableHTTPTransport(BaseTransport):
         headers = {**self.headers,'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream'}
         if headers.get('mcp-session-id') is None and self.mcp_session_id is not None:        
             headers['mcp-session-id'] = self.mcp_session_id
+        if self.protocol_version is not None:
+            headers['mcp-protocol-version'] = self.protocol_version
         json_payload = request.model_dump()
         message = None
         async with self.client.stream('POST',self.url, headers=headers, json=json_payload) as response:
             if self.mcp_session_id is None:
                 self.mcp_session_id=response.headers.get('mcp-session-id')
-            async for line in response.aiter_lines():
-                if line.startswith('event: ') or line.strip() == '':
+            buffer=bytearray()
+            async for chunk in response.aiter_bytes(50):
+                buffer.extend(chunk)
+                try:
+                    data=buffer.decode().strip()
+                    content:dict=json.loads(data[21:].strip())
+                    if 'result' in content:
+                        message = JSONRPCResponse.model_validate(content)
+                        if request.method == Method.INITIALIZE:
+                            self.protocol_version=message.result.get('protocolVersion')
+                    elif 'error' in content:
+                        error = Error.model_validate(content.get('error'))
+                        message = JSONRPCError(id=content.get('id'), error=error, message=error.message)
+                    buffer.clear()  # Clear the buffer after processing
+                except json.JSONDecodeError:
                     continue
-                content:dict=json.loads(line[6:].strip())
-                if 'result' in content:
-                    message = JSONRPCResponse.model_validate(content)
-                elif 'error' in content:
-                    error = Error.model_validate(content.get('error'))
-                    message = JSONRPCError(id=content.get('id'), error=error, message=error.message)
         return message
 
     async def send_notification(self, notification: JSONRPCNotification):

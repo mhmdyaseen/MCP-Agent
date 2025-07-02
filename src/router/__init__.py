@@ -6,12 +6,12 @@ from json import dumps
 class LLMRouter:
     def __init__(self,instructions:list[str]=[],routes:list[dict]=[],llm:BaseInference=None,verbose=False):
         self.system_prompt=read_markdown_file('./src/router/prompt.md')
-        self.instructions=self.__get_instructions(instructions)
+        self.instructions=self.get_instructions(instructions)
         self.routes=dumps(routes,indent=2)
         self.llm=llm
         self.verbose=verbose
 
-    def __get_instructions(self,instructions):
+    def get_instructions(self,instructions):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
     
     def invoke(self,query:str)->str:
