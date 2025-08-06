@@ -17,6 +17,7 @@ class Session:
         self.id=str(uuid4())
         self.transport=transport
         self.client_info=client_info
+        self.initialize_result:InitializeResult=None
 
     async def connect(self)->None:
         await self.transport.connect()
@@ -29,7 +30,11 @@ class Session:
         response=await self.transport.send_request(request=request)
         json_rpc_notification=JSONRPCNotification(method=Method.NOTIFICATION_INITIALIZED)
         await self.transport.send_notification(json_rpc_notification)
-        return InitializeResult.model_validate(response.result)
+        self.initialize_result=InitializeResult.model_validate(response.result)
+        return self.initialize_result
+    
+    async def get_initialize_result(self)->InitializeResult:
+        return self.initialize_result
     
     async def ping(self)->bool:
         request=JSONRPCRequest(id=self.id,method=Method.PING)

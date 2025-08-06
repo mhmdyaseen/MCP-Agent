@@ -31,22 +31,23 @@ async def discovery_tool(server_name:str,client:MCPClient=None):
         return f'Server {server_name} not connected.'
     prompt=''
     session=client.get_session(server_name)
-    tools=await session.tools_list()
-    if tools:
+    initialize=await session.get_initialize_result()
+    if initialize.capabilities.tools:
+        tools=await session.tools_list()
         prompt+=f'Tools available in {server_name}:\n'
         for tool in tools:
             prompt+=f'- Tool Name: {tool.name}\n'
             prompt+=f'- Tool Description: {tool.description}\n'
             prompt+=f'- Tool Parameters: {tool.inputSchema.model_dump_json(indent=4)}\n'
             prompt+='\n'
-    # resources=await session.resources_list()
-    # if resources:
-    #     prompt+=f'Resources available in {server_name}:\n'
-    #     for resource in resources:
-    #         prompt+=f'- Resource Name: {resource.name}\n'
-    #         prompt+=f'- Resource Description: {resource.description}\n'
-    #         prompt+=f'- Resource URI: {resource.uri}\n'
-    #         prompt+='\n'
+    if initialize.capabilities.resources:
+        resources=await session.resources_list()
+        prompt+=f'Resources available in {server_name}:\n'
+        for resource in resources:
+            prompt+=f'- Resource Name: {resource.name}\n'
+            prompt+=f'- Resource Description: {resource.description}\n'
+            prompt+=f'- Resource URI: {resource.uri}\n'
+            prompt+='\n'
     return prompt
 
 @Tool('Execute Tool',params=Execute)
