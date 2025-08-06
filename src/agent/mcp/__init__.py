@@ -38,11 +38,6 @@ class MCPAgent(BaseAgent):
         self.iteration=0
         self.verbose=verbose
         self.memory=memory
-        
-        self.max_llm_retries = 3
-        self.base_retry_delay = 1.0  # delay's in seconds
-        self.max_retry_delay = 30.0  
-        
         self.graph=self.create_graph()
 
     def get_instructions(self,instructions):
