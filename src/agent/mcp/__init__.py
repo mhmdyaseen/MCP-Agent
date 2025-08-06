@@ -21,7 +21,7 @@ tools=[
 ]
 
 class MCPAgent(BaseAgent):
-    def __init__(self,config_path:str='',instructions:list[str]=[],memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
+    def __init__(self,name:str='',instructions:list[str]=[],config_path:str='',memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
         self.name='MCP Agent'
         self.description='The MCP Agent is capable of connecting to MCP servers and executing tools and resources to perform tasks.'
         self.system_prompt=read_markdown_file('./src/agent/mcp/prompt/system.md')
