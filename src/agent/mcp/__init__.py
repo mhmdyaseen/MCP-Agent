@@ -5,7 +5,7 @@ from langgraph.graph import StateGraph,END,START
 from src.inference import BaseInference
 from src.tool.registry import Registry
 from src.agent.mcp.state import State
-from src.mcp.client import Client
+from src.mcp.client import MCPClient
 from src.memory import BaseMemory
 from src.agent import BaseAgent
 from datetime import datetime
@@ -30,7 +30,7 @@ class MCPAgent(BaseAgent):
         self.answer_prompt=read_markdown_file('./src/agent/mcp/prompt/answer.md')
         self.instructions=self.get_instructions(instructions)
         self.llm=llm
-        self.client=Client.from_config_file(config_path)
+        self.client=MCPClient.from_config_file(config_path)
         self.registry=Registry(tools+[done_tool])
         self.max_iteration=max_iteration
         self.iteration=0
@@ -42,7 +42,7 @@ class MCPAgent(BaseAgent):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
 
     async def reason(self,state:State):
-        mcp_servers=self.client.get_status()
+        mcp_servers=self.client.get_server_names_with_status()
         parameters={
             'name':self.name,
             'description':self.description,

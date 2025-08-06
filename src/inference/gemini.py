@@ -20,9 +20,9 @@ class ChatGemini(BaseInference):
     @retry(stop=stop_after_attempt(3),retry=retry_if_exception_type(RequestException))
     def invoke(self, messages: list[BaseMessage],json=False,model:BaseModel|None=None) -> AIMessage|ToolMessage|BaseModel:
         headers=self.headers
+        headers.update({'x-goog-api-key':self.api_key})
         temperature=self.temperature
         url=self.base_url or f"https://generativelanguage.googleapis.com/{self.api_version}/models/{self.model}:generateContent"
-        params={'key':self.api_key}
         contents=[]
         system_instruct=None
         for message in messages:
@@ -87,7 +87,7 @@ class ChatGemini(BaseInference):
             payload['system_instruction']=system_instruct
         try:
             with Client() as client:
-                response=client.post(url=url,headers=headers,json=payload,params=params,timeout=None)
+                response=client.post(url=url,headers=headers,json=payload,timeout=None)
             json_obj=response.json()
             # print(json_obj)
             if json_obj.get('error'):

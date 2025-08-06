@@ -1,5 +1,5 @@
 from src.agent.mcp.tools.views import Done,Discovery,Connect,Disconnect,Resource,Execute
-from src.mcp.client import Client as MCPClient
+from src.mcp.client import MCPClient
 from src.tool import Tool
 
 @Tool('Done Tool',params=Done)
@@ -71,4 +71,4 @@ async def resource_tool(server_name:str,resource_uri:str,client:MCPClient=None):
     if resource_uri not in [resource.uri for resource in resources]:
         return f'Resource {resource_uri} not found in server {server_name}.'
     resource_result=await session.resources_read(resource_uri)
-    return resource_result.contents[0].text
+    return resource_result[0].text

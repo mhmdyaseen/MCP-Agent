@@ -1,10 +1,10 @@
 from src.mcp.client.utils import create_transport_from_server_config
-from src.mcp.session import Session
 from src.mcp.types.info import ClientInfo
+from src.mcp.client.session import Session
 from typing import Any
 import json
 
-class Client:
+class MCPClient:
     client_info=ClientInfo(name="MCP Client",version="0.1.0")
     def __init__(self,config:dict[str,dict[str,Any]]={})->None:
         self.config=config
@@ -13,17 +13,23 @@ class Client:
             self.config["mcpServers"]={}
         
     @classmethod
-    def from_config(cls,config:dict[str,dict[str,Any]])->'Client':
+    def from_config(cls,config:dict[str,dict[str,Any]])->'MCPClient':
         return cls(config=config)
     
     @classmethod
-    def from_config_file(cls,config_file_path:str)->'Client':
+    def from_config_file(cls,config_file_path:str)->'MCPClient':
         with open(config_file_path) as f:
             config=json.load(f)
         return cls(config=config)
     
     def get_server_names(self)->list[str]:
         return list(self.config.get("mcpServers").keys())
+    
+    def get_server_status(self,server_name:str)->str:
+        return "Connected"  if self.sessions.get(server_name) else "Disconnected"
+    
+    def get_server_names_with_status(self)->dict[str,str]:
+        return {name:self.get_server_status(name) for name in self.get_server_names()}
     
     def add_server(self,name:str,server_config:dict[str,Any])->None:
         if self.config.get("mcpServers") is None:
@@ -52,16 +58,9 @@ class Client:
         session=Session(transport=transport,client_info=self.client_info)
         await session.connect()
         initialize_result=await session.initialize()
+        print(initialize_result)
         self.sessions[name]=session
         return session
-    
-    def get_server_status(self,name:str)->str:
-        if name in self.sessions:
-            return "Connected"
-        return "Disconnected"
-    
-    def get_status(self):
-        return {server_name:self.get_server_status(name=server_name) for server_name in self.get_server_names()}
     
     def get_session(self,name:str)->Session|None:
         if name not in self.sessions:
