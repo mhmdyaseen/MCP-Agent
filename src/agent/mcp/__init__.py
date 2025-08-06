@@ -47,7 +47,7 @@ class MCPAgent(BaseAgent):
             'name':self.name,
             'description':self.description,
             'instructions':self.instructions,
-            'mcp_servers': '\n'.join([f'{name} ({status})' for name,status in mcp_servers.items()]),
+            'mcp_servers': '\n'.join([f'{name}: ({status})' for name,status in mcp_servers.items()]),
             'tools_prompt':self.registry.tools_prompt(),
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'operating_system': platform(),
