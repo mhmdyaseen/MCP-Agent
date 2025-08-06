@@ -14,6 +14,10 @@ from platform import platform
 from textwrap import shorten
 import json
 
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
 tools=[
     execute_tool,discovery_tool,
     connect_tool,disconnect_tool,
@@ -24,10 +28,12 @@ class MCPAgent(BaseAgent):
     def __init__(self,config_path:str='',instructions:list[str]=[],memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
         self.name='MCP Agent'
         self.description='The MCP Agent is capable of connecting to MCP servers and executing tools and resources to perform tasks.'
+        
         self.system_prompt=read_markdown_file('./src/agent/mcp/prompt/system.md')
         self.action_prompt=read_markdown_file('./src/agent/mcp/prompt/action.md')
         self.observation_prompt=read_markdown_file('./src/agent/mcp/prompt/observation.md')
         self.answer_prompt=read_markdown_file('./src/agent/mcp/prompt/answer.md')
+        
         self.instructions=self.get_instructions(instructions)
         self.llm=llm
         self.client=MCPClient.from_config_file(config_path)
@@ -36,10 +42,49 @@ class MCPAgent(BaseAgent):
         self.iteration=0
         self.verbose=verbose
         self.memory=memory
+        
+        self.max_llm_retries = 3
+        self.base_retry_delay = 1.0  # delay's in seconds
+        self.max_retry_delay = 30.0  
+        
         self.graph=self.create_graph()
 
     def get_instructions(self,instructions):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
+
+    async def _retry_llm_invoke(self, messages, max_retries=None):
+        if max_retries is None:
+            max_retries = self.max_llm_retries
+        
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                ai_message = await self.llm.async_invoke(messages=messages)
+                return ai_message
+                
+            except Exception as e:
+                last_exception = e
+                
+                if self.verbose:
+                    print(colored(f'LLM invocation attempt {attempt + 1} failed: {str(e)}', color='yellow', attrs=['bold']))
+                else:
+                    logger.warning(f'LLM invocation attempt {attempt + 1} failed: {str(e)}')
+                
+                if attempt == max_retries - 1:
+                    break
+                
+                delay = min(self.base_retry_delay * (2 ** attempt), self.max_retry_delay)
+                
+                if self.verbose:
+                    print(colored(f'Retrying in {delay:.1f} seconds...', color='yellow'))
+                
+                await asyncio.sleep(delay)
+        
+        if self.verbose:
+            print(colored(f'All {max_retries} LLM invocation attempts failed', color='red', attrs=['bold']))
+        
+        raise last_exception
 
     async def reason(self,state:State):
         mcp_servers=self.client.get_server_names_with_status()
@@ -56,7 +101,9 @@ class MCPAgent(BaseAgent):
         system_prompt=self.system_prompt.format(**parameters)
         human_prompt=f'Task: {state.get("input")}'
         messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]+state.get('messages')
-        ai_message=await self.llm.async_invoke(messages=messages)
+        
+        ai_message=await self._retry_llm_invoke(messages)
+        
         agent_data=extract_agent_data(ai_message.content)
         thought=agent_data.get('Thought')
         if self.verbose:
