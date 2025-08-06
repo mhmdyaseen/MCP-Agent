@@ -14,10 +14,6 @@ from platform import platform
 from textwrap import shorten
 import json
 
-
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
-
 tools=[
     execute_tool,discovery_tool,
     connect_tool,disconnect_tool,
@@ -52,40 +48,6 @@ class MCPAgent(BaseAgent):
     def get_instructions(self,instructions):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
 
-    async def _retry_llm_invoke(self, messages, max_retries=None):
-        if max_retries is None:
-            max_retries = self.max_llm_retries
-        
-        last_exception = None
-        
-        for attempt in range(max_retries):
-            try:
-                ai_message = await self.llm.async_invoke(messages=messages)
-                return ai_message
-                
-            except Exception as e:
-                last_exception = e
-                
-                if self.verbose:
-                    print(colored(f'LLM invocation attempt {attempt + 1} failed: {str(e)}', color='yellow', attrs=['bold']))
-                else:
-                    logger.warning(f'LLM invocation attempt {attempt + 1} failed: {str(e)}')
-                
-                if attempt == max_retries - 1:
-                    break
-                
-                delay = min(self.base_retry_delay * (2 ** attempt), self.max_retry_delay)
-                
-                if self.verbose:
-                    print(colored(f'Retrying in {delay:.1f} seconds...', color='yellow'))
-                
-                await asyncio.sleep(delay)
-        
-        if self.verbose:
-            print(colored(f'All {max_retries} LLM invocation attempts failed', color='red', attrs=['bold']))
-        
-        raise last_exception
-
     async def reason(self,state:State):
         mcp_servers=self.client.get_server_names_with_status()
         parameters={
@@ -102,7 +64,7 @@ class MCPAgent(BaseAgent):
         human_prompt=f'Task: {state.get("input")}'
         messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]+state.get('messages')
         
-        ai_message=await self._retry_llm_invoke(messages)
+        ai_message=await self.llm.async_invoke(messages)
         
         agent_data=extract_agent_data(ai_message.content)
         thought=agent_data.get('Thought')
