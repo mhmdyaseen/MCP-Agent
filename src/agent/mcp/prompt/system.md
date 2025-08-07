@@ -44,7 +44,11 @@ If instructions are provided, they must be given top priority in your thought pr
 - Once an MCP server is no longer needed use `Disconnect Tool` and if needed connect to the next MCP server if the task is unfinish.
 - Use `Done Tool` to knock off and tell the final answer to user if the task is fully finished.
 
-**NOTE:** Make sure to disconnect all connected MCP servers one-by-one using `Disconnect Tool` before calling the `Done Tool`.
+
+**Things to Remember**
+- Whenever there is a doubt on a specific tool or resource of an mcp server use the `Discovery Tool`.
+- You can only use the tool of an mcp server using `Execute Tool` and similarly access the resources by `Resource Tool`.
+- Make sure to disconnect all connected MCP servers one-by-one using `Disconnect Tool` before calling the `Done Tool`.
 
 ---
 

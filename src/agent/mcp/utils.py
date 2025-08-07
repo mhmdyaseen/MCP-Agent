@@ -1,5 +1,6 @@
 import re
 import ast
+import json
 
 def read_markdown_file(file_path: str) -> str:
     with open(file_path, 'r',encoding='utf-8') as f:
@@ -26,5 +27,5 @@ def extract_agent_data(text):
             result['Action Input'] = ast.literal_eval(action_input_str)
         except (ValueError, SyntaxError):
             # If there's an issue with conversion, store it as raw string
-            result['Action Input'] = action_input_str
+            result['Action Input'] = json.loads(action_input_str)
     return result
