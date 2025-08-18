@@ -1,4 +1,4 @@
-from src.agent.mcp.tools.views import Done,Discovery,Connect,Disconnect,Resource,Execute
+from src.agent.mcp.tools.views import Done,Discovery,Connect,Disconnect,Resource,Call
 from src.mcp.client import MCPClient
 from src.tool import Tool
 
@@ -50,9 +50,9 @@ async def discovery_tool(server_name:str,client:MCPClient=None):
             prompt+='\n'
     return prompt
 
-@Tool('Execute Tool',params=Execute)
-async def execute_tool(server_name:str,tool_name:str,params:dict,client:MCPClient=None):
-    '''Execute a tool from the currently connected MCP server'''
+@Tool('Call Tool',params=Call)
+async def call_tool(server_name:str,tool_name:str,params:dict,client:MCPClient=None):
+    '''To call a tool from a specific connected MCP server'''
     if server_name not in client.sessions:
         return f'Server {server_name} not connected.'
     session= client.get_session(server_name)

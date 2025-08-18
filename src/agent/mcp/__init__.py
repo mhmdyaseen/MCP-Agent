@@ -1,4 +1,4 @@
-from src.agent.mcp.tools import done_tool,execute_tool,discovery_tool,resource_tool,connect_tool,disconnect_tool
+from src.agent.mcp.tools import done_tool,call_tool,discovery_tool,resource_tool,connect_tool,disconnect_tool
 from src.agent.mcp.utils import extract_agent_data,read_markdown_file
 from src.message import AIMessage,HumanMessage,SystemMessage
 from langgraph.graph import StateGraph,END,START
@@ -15,7 +15,7 @@ from textwrap import shorten
 import json
 
 tools=[
-    execute_tool,discovery_tool,
+    call_tool,discovery_tool,
     connect_tool,disconnect_tool,
     resource_tool
 ]
@@ -44,12 +44,9 @@ class MCPAgent(BaseAgent):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
 
     async def reason(self,state:State):
-        mcp_servers=self.client.get_server_names_with_status()
+        mcp_servers_status=self.client.get_status_of_servers()
         parameters={
-            'name':self.name,
-            'description':self.description,
-            'instructions':self.instructions,
-            'mcp_servers': '\n'.join([f'{name}: ({status})' for name,status in mcp_servers.items()]),
+            'mcp_servers': '\n'.join([f'{name}: ({status})' for name,status in mcp_servers_status.items()]),
             'tools_prompt':self.registry.tools_prompt(),
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'operating_system': platform(),

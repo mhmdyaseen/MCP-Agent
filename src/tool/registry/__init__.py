@@ -23,7 +23,7 @@ class Registry:
         tool=self.tools_registry.get(name)
         try:
             if tool is None:
-                raise ValueError('Tool not found')
+                raise ValueError('Tool not found. Check the available tools.')
             if tool.params:
                 tool_params=tool.params.model_validate(input)
                 params=tool_params.model_dump()|kwargs

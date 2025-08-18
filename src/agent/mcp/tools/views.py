@@ -17,10 +17,10 @@ class Disconnect(SharedBaseModel):
 class Discovery(SharedBaseModel):
     server_name:str = Field(...,description="the name of the server to discover tools and resources from",examples=["abc-mcp"])
 
-class Execute(SharedBaseModel):
+class Call(SharedBaseModel):
     server_name:str = Field(...,description="the name of the server to execute the tool on",examples=["mno-mcp","pqr-mcp"])
-    tool_name:str = Field(...,description="the name of the tool to execute",examples=["abc_tool","xyz_tool"])
-    params:dict = Field(...,description="the parameters to pass to the tool",examples=[{"param1":"value1","param2":"value2"},{"param1":"value1"}])
+    tool_name:str = Field(...,description="the name of the tool to call from the server",examples=["abc_tool","xyz_tool"])
+    params:dict = Field(...,description="the parameters to pass to the tool call",examples=[{"param1":"value1","param2":"value2"},{"param1":"value1"}])
 
 class Resource(SharedBaseModel):
     server_name:str = Field(...,description="the name of the server to read the resource from",examples=["abc-mcp"])

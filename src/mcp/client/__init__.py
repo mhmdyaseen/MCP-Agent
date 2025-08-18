@@ -25,11 +25,11 @@ class MCPClient:
     def get_server_names(self)->list[str]:
         return list(self.config.get("mcpServers").keys())
     
-    def get_server_status(self,server_name:str)->str:
+    def get_status(self,server_name:str)->str:
         return "Connected"  if self.sessions.get(server_name) else "Disconnected"
     
-    def get_server_names_with_status(self)->dict[str,str]:
-        return {name:self.get_server_status(name) for name in self.get_server_names()}
+    def get_status_of_servers(self)->dict[str,str]:
+        return {name:self.get_status(name) for name in self.get_server_names()}
     
     def add_server(self,name:str,server_config:dict[str,Any])->None:
         if self.config.get("mcpServers") is None:
