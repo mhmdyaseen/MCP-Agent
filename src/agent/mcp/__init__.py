@@ -1,4 +1,4 @@
-from src.agent.mcp.tools import done_tool,call_tool,discovery_tool,resource_tool,connect_tool,disconnect_tool
+from src.agent.mcp.tools import done_tool,connect_tool,disconnect_tool
 from src.agent.mcp.utils import extract_agent_data,read_markdown_file
 from src.message import AIMessage,HumanMessage,SystemMessage
 from langgraph.graph import StateGraph,END,START
@@ -14,29 +14,21 @@ from platform import platform
 from textwrap import shorten
 import json
 
-tools=[
-    call_tool,discovery_tool,
-    connect_tool,disconnect_tool,
-    resource_tool
-]
-
 class MCPAgent(BaseAgent):
     def __init__(self,name:str='',instructions:list[str]=[],config_path:str='',memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
         self.name='MCP Agent'
         self.description='The MCP Agent is capable of connecting to MCP servers and executing tools and resources to perform tasks.'
-        
         self.system_prompt=read_markdown_file('./src/agent/mcp/prompt/system.md')
         self.action_prompt=read_markdown_file('./src/agent/mcp/prompt/action.md')
         self.observation_prompt=read_markdown_file('./src/agent/mcp/prompt/observation.md')
         self.answer_prompt=read_markdown_file('./src/agent/mcp/prompt/answer.md')
-        
+        self.registry=Registry([connect_tool,disconnect_tool,done_tool])
         self.instructions=self.get_instructions(instructions)
-        self.llm=llm
         self.client=MCPClient.from_config_file(config_path)
-        self.registry=Registry(tools+[done_tool])
         self.max_iteration=max_iteration
         self.iteration=0
         self.verbose=verbose
+        self.llm=llm
         self.memory=memory
         self.graph=self.create_graph()
 
@@ -44,10 +36,12 @@ class MCPAgent(BaseAgent):
         return '\n'.join([f'{i+1}. {instruction}' for i,instruction in enumerate(instructions)])
 
     async def reason(self,state:State):
-        mcp_servers_status=self.client.get_status_of_servers()
+        servers=self.client.get_servers_status()
+        sessions=[self.client.get_session(name) for name,status in servers if status]
+        await self.registry.add_tools_from_sessions(sessions)
         parameters={
-            'mcp_servers': '\n'.join([f'{name}: ({status})' for name,status in mcp_servers_status.items()]),
-            'tools_prompt':self.registry.tools_prompt(),
+            'mcp_servers': '\n'.join([f'{name}: {"Connected" if status else "Disconnected"}' for name,status in servers]),
+            'tools':self.registry.get_tools_schema(),
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'operating_system': platform(),
             'max_iteration':self.max_iteration
@@ -57,7 +51,6 @@ class MCPAgent(BaseAgent):
         messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]+state.get('messages')
         
         ai_message=await self.llm.async_invoke(messages)
-        
         agent_data=extract_agent_data(ai_message.content)
         thought=agent_data.get('Thought')
         if self.verbose:
@@ -89,7 +82,7 @@ class MCPAgent(BaseAgent):
             thought=agent_data.get('Thought')
             action_name=agent_data.get('Action Name')
             action_input=agent_data.get('Action Input')
-            action_result=await self.registry.async_execute(action_name,action_input)
+            action_result=await self.registry.async_execute(action_name,action_input,client=self.client)
             final_answer=action_result.content
         else:
             thought='Looks like I have reached the maximum iteration limit reached.',

@@ -25,11 +25,8 @@ class MCPClient:
     def get_server_names(self)->list[str]:
         return list(self.config.get("mcpServers").keys())
     
-    def get_status(self,server_name:str)->str:
-        return "Connected"  if self.sessions.get(server_name) else "Disconnected"
-    
-    def get_status_of_servers(self)->dict[str,str]:
-        return {name:self.get_status(name) for name in self.get_server_names()}
+    def get_servers_status(self)->list[tuple[str,bool]]:
+        return [(name,self.is_connected(name)) for name in self.get_server_names()]
     
     def add_server(self,name:str,server_config:dict[str,Any])->None:
         if self.config.get("mcpServers") is None:
@@ -57,17 +54,21 @@ class MCPClient:
         transport=create_transport_from_server_config(server_config=server_config)
         session=Session(transport=transport,client_info=self.client_info)
         await session.connect()
-        await session.initialize()
+        initialize_result=await session.initialize()
+        # print(initialize_result)
         self.sessions[name]=session
         return session
     
+    def is_connected(self,server_name:str)->bool:
+        return server_name in self.sessions
+    
     def get_session(self,name:str)->Session|None:
-        if name not in self.sessions:
+        if not self.is_connected(name):
             raise ValueError(f"Session {name} not found")
         return self.sessions.get(name)
     
     async def close_session(self,name:str)->None:
-        if name not in self.sessions:
+        if not self.is_connected(name):
             raise ValueError(f"Session {name} not found")
         session=self.sessions.get(name)
         await session.shutdown()

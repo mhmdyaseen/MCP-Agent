@@ -17,10 +17,13 @@ class Session:
         self.id=str(uuid4())
         self.transport=transport
         self.client_info=client_info
-        self.initialize_result:InitializeResult=None
+        self.initialize_result:Optional[InitializeResult]=None
 
     async def connect(self)->None:
         await self.transport.connect()
+
+    def get_initialize_result(self)->InitializeResult:
+        return self.initialize_result
 
     async def initialize(self)->InitializeResult:
         PROTOCOL_VERSION="2024-11-05"
@@ -31,10 +34,7 @@ class Session:
         json_rpc_notification=JSONRPCNotification(method=Method.NOTIFICATION_INITIALIZED)
         await self.transport.send_notification(json_rpc_notification)
         self.initialize_result=InitializeResult.model_validate(response.result)
-        return self.initialize_result
-    
-    async def get_initialize_result(self)->InitializeResult:
-        return self.initialize_result
+        return InitializeResult.model_validate(response.result)
     
     async def ping(self)->bool:
         request=JSONRPCRequest(id=self.id,method=Method.PING)
@@ -56,7 +56,7 @@ class Session:
         response=await self.transport.send_request(request=request)
         return [Resource.model_validate(resource) for resource in response.result.get("resources")]
     
-    async def resources_read(self,uri:str)->list[ResourceResult]:
+    async def resources_read(self,uri:str)->ResourceResult:
         request=JSONRPCRequest(id=self.id,method=Method.RESOURCES_READ,params={"uri":uri})
         response=await self.transport.send_request(request=request)
         return [ResourceResult.model_validate(resource) for resource in response.result.get("contents")]
@@ -79,7 +79,7 @@ class Session:
         response=await self.transport.send_request(request=message)
         return [Tool.model_validate(tool) for tool in response.result.get("tools")]
     
-    async def tools_call(self,name:str,arguments:dict[str,Any])->ToolResult:
+    async def tools_call(self,name:str,**arguments)->ToolResult:
         tool_request=ToolRequest(name=name,arguments=arguments)
         message=JSONRPCRequest(id=self.id,method=Method.TOOLS_CALL,params=tool_request.model_dump())
         response=await self.transport.send_request(request=message)
