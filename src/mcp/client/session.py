@@ -79,8 +79,8 @@ class Session:
         response=await self.transport.send_request(request=message)
         return [Tool.model_validate(tool) for tool in response.result.get("tools")]
     
-    async def tools_call(self,name:str,**arguments)->ToolResult:
-        tool_request=ToolRequest(name=name,arguments=arguments)
+    async def tools_call(self,tool_name:str,**arguments)->ToolResult:
+        tool_request=ToolRequest(name=tool_name,arguments=arguments)
         message=JSONRPCRequest(id=self.id,method=Method.TOOLS_CALL,params=tool_request.model_dump())
         response=await self.transport.send_request(request=message)
         return ToolResult.model_validate(response.result)
