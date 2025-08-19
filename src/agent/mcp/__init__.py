@@ -43,19 +43,20 @@ class MCPAgent(BaseAgent):
             'operating_system': platform(),
             'max_iteration':self.max_iteration
         }
+
         system_prompt=self.system_prompt.format(**parameters)
-        human_prompt=f'Task: {state.get("input")}'
-        messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]+state.get('messages')
+        human_prompt=f'Task: {state["input"]}'
+        messages=[SystemMessage(system_prompt),HumanMessage(human_prompt)]+state['messages']
         
         ai_message=await self.llm.async_invoke(messages)
         agent_data=extract_agent_data(ai_message.content)
         thought=agent_data.get('Thought')
         if self.verbose:
             print(colored(f'Thought: {thought}',color='light_magenta',attrs=['bold']))
-        return {**state,'messages':[ai_message],'agent_data':agent_data}
+        return {'agent_data':agent_data}
 
     async def action(self,state:State):
-        agent_data=state.get('agent_data')
+        agent_data=state['agent_data']
         thought=agent_data.get('Thought')
         action_name=agent_data.get('Action Name')
         action_input=agent_data.get('Action Input')
@@ -66,16 +67,14 @@ class MCPAgent(BaseAgent):
         observation=action_result.content
         if self.verbose:
             print(colored(f'Observation: {shorten(observation,width=500)}',color='green',attrs=['bold']))
-        state['messages'].pop()
         action_prompt=self.action_prompt.format(**{'thought':thought,'action_name':action_name,'action_input':json.dumps(action_input,indent=2)})
         observation_prompt=self.observation_prompt.format(**{'observation':observation,'iteration':self.iteration,'max_iteration':self.max_iteration})
         messages=[AIMessage(action_prompt),HumanMessage(observation_prompt)]
-        return {**state,'messages':messages}
+        return {'agent_data':{},'messages':messages}
 
     async def answer(self,state:State):
-        state['messages'].pop()
         if self.max_iteration>self.iteration:
-            agent_data=state.get('agent_data')
+            agent_data=state['agent_data']
             thought=agent_data.get('Thought')
             action_name=agent_data.get('Action Name')
             action_input=agent_data.get('Action Input')
@@ -93,7 +92,7 @@ class MCPAgent(BaseAgent):
         messages=[AIMessage(answer_prompt)]
         if self.verbose:
             print(colored(f'Final Answer: {final_answer}',color='cyan',attrs=['bold']))
-        return {**state,'output':final_answer,'messages':messages}
+        return {'output':final_answer,'messages':messages}
 
     def main_controller(self,state:State):
         if self.iteration<self.max_iteration:
@@ -128,6 +127,7 @@ class MCPAgent(BaseAgent):
             'messages':[]
         }
         response=await self.graph.ainvoke(state)
+        print([msg.role for msg in response.get('messages')])
         if self.memory:
             self.memory.store(response.get('messages'))
         return response.get('output')
