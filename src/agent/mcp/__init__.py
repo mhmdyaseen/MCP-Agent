@@ -15,7 +15,7 @@ from textwrap import shorten
 import json
 
 class MCPAgent(BaseAgent):
-    def __init__(self,config_path:str='',memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
+    def __init__(self,client:MCPClient,memory:BaseMemory=None,llm:BaseInference=None,max_iteration=10,verbose=False):
         self.name='MCP Agent'
         self.description='The MCP Agent is capable of connecting to MCP servers and executing tools and resources to perform tasks.'
         self.system_prompt=read_markdown_file('./src/agent/mcp/prompt/system.md')
@@ -23,20 +23,21 @@ class MCPAgent(BaseAgent):
         self.observation_prompt=read_markdown_file('./src/agent/mcp/prompt/observation.md')
         self.answer_prompt=read_markdown_file('./src/agent/mcp/prompt/answer.md')
         self.registry=Registry([connect_tool,disconnect_tool,done_tool])
-        self.client=MCPClient.from_config_file(config_path)
         self.max_iteration=max_iteration
-        self.iteration=0
         self.verbose=verbose
-        self.llm=llm
         self.memory=memory
+        self.client=client
+        self.iteration=0
+        self.llm=llm
         self.graph=self.create_graph()
 
     async def reason(self,state:State):
         servers=self.client.get_servers_metadata()
         sessions=[self.client.get_session(server.get('name')) for server in servers if server.get('status')]
         await self.registry.add_tools_from_sessions(sessions)
+        mcp_servers=[f'{server.get("name")}:\nDescription: {server.get("description")}\nStatus: {"Connected" if server.get("status") else "Disconnected"}' for server in servers]
         parameters={
-            'mcp_servers': '\n'.join([f'{server.get("name")}:\nDescription: {server.get("description")}\nStatus: {"Connected" if server.get("status") else "Disconnected"}' for server in servers]),
+            'mcp_servers': '\n'.join(mcp_servers) or "No MCP servers provided.",
             'tools':self.registry.get_tools_schema(),
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'operating_system': platform(),

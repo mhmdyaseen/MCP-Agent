@@ -54,7 +54,7 @@ class Registry:
             if isinstance(content,MCPToolResult):
                 content=content.content[0].text
         except Exception as e:
-            content=e
+            content=str(e)
             print(f'Error: {e}')
         return ToolResult(name=name,content=content)
 
@@ -73,7 +73,7 @@ class Registry:
             if isinstance(content,MCPToolResult):
                 content=content.content[0].text
         except Exception as e:
-            content=e
+            content=str(e)
             print(f'Error: {e}')
         return ToolResult(name=name,content=content)
     

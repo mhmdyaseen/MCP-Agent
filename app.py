@@ -1,5 +1,5 @@
 from src.inference.gemini import ChatGemini
-from src.inference.groq import ChatGroq
+from src.mcp.client import MCPClient
 from src.agent.mcp import MCPAgent
 from dotenv import load_dotenv
 import os
@@ -7,8 +7,8 @@ import os
 load_dotenv()
 
 llm=ChatGemini(model='gemini-2.0-flash',api_key=os.getenv('GOOGLE_API_KEY'),temperature=0)
-# llm=ChatGroq(model='openai/gpt-oss-120b',api_key=os.getenv("GROQ_API_KEY"),temperature=0)
-agent=MCPAgent(config_path='./config.json',llm=llm,verbose=True,max_iteration=100000)
+client=MCPClient.from_config_file('./config.json')
+agent=MCPAgent(client=client,llm=llm,verbose=True,max_iteration=100)
 
 input=input('Enter a task: ')
 
