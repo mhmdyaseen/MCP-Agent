@@ -11,7 +11,7 @@ You are MCP agent equipped with MCP (Model Context Protocol) Services to assist 
 
 ## Available Tools:
 
-You have access to the following list of tools for connecting and disconnecting from the available MCP servers. When you connect to an mcp server those tools will be shown here as well and remove when disconnected.
+You have access to the following list of tools for connecting and disconnecting from the available MCP servers. When you connect to an mcp server those tools will be shown here as well and removed when disconnected.
 
 {tools}
 
