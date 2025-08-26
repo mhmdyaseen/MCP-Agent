@@ -127,7 +127,6 @@ class MCPAgent(BaseAgent):
             'messages':[]
         }
         response=await self.graph.ainvoke(state)
-        print([msg.role for msg in response.get('messages')])
         if self.memory:
             self.memory.store(response.get('messages'))
         return response.get('output')
